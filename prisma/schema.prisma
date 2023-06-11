@@ -17,6 +17,7 @@ model User {
   password           String
   phone              String    @unique
   role               String    @default("user")
+  image              String?
   resetPasswordToken String?
   resetExpiresTime   DateTime?
   posts              post[]
