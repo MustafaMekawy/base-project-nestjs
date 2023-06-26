@@ -2,13 +2,15 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { AuthModule } from './auth/auth.module';
-import { PrismaModule } from './prisma/prisma.module';
-import { EmailModule } from './email/email.module';
-import { CategoryModule } from './category/category.module';
-import { PostModule } from './post/post.module';
-import { UserModule } from './user/user.module';
 
+import { PrismaModule } from './prisma/prisma.module';
+import { UserModule } from './api/user/user.module';
+import { AuthModule } from './api/auth/auth.module';
+import { MeModule } from './api/me/me.module';
+import { EmailModule } from './common/modules/email/email.module';
+
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { ResponseInterceptor } from './common/interceptor/response/response-interceptor/response-interceptor.interceptor';
 
 @Module({
   imports: [
@@ -16,15 +18,18 @@ import { UserModule } from './user/user.module';
       isGlobal: true,
     }),
     AuthModule,
+    UserModule,
+    MeModule,
     PrismaModule,
     EmailModule,
-    CategoryModule,
-    PostModule,
-    UserModule
-    
-
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ResponseInterceptor,
+    },
+  ],
 })
 export class AppModule {}

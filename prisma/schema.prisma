@@ -20,27 +20,7 @@ model User {
   image              String?
   resetPasswordToken String?
   resetExpiresTime   DateTime?
-  posts              post[]
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 }
 
-model Category {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  posts     post[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model post {
-  id           String   @id @default(uuid())
-  title        String
-  body         String
-  userId       String
-  category     Category @relation(fields: [categoryName], references: [name], onDelete: Cascade, onUpdate: Cascade)
-  categoryName String
-  auther       User     @relation(fields: [userId], references: [id])
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-}
