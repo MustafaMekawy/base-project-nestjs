@@ -1,3 +1,4 @@
+import { UserInterface } from './../../database/models/user.interface';
 import { JwtGuard } from './../auth/guards/jwt.guard';
 import {
   Controller,
@@ -19,15 +20,20 @@ export class MeController {
   constructor(private readonly meService: MeService) {}
   @Get()
   @UseGuards(JwtGuard)
-  async me(@GetCurrentUser() currentUser: any) {
+  async me(@GetCurrentUser() currentUser: UserInterface) {
     return createResponse('current user', currentUser);
   }
   @Post('uploadImage')
+  @UseGuards(JwtGuard)
   @UseInterceptors(FileInterceptor('image', storage))
   async uploadUserProfileImage(
     @UploadedFile() file,
-    @GetCurrentUser('id') currentUser: any,
+    @GetCurrentUser('id') currentUserId: string,
   ) {
-    return this.meService.updateCurrentUserImage(currentUser, file);
+    const updatedUser = await this.meService.updateCurrentUserImage(
+      currentUserId,
+      file,
+    );
+    return createResponse('image uploaded successfully', updatedUser);
   }
 }

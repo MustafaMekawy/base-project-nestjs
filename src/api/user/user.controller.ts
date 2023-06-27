@@ -1,26 +1,11 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  Res,
-  UseGuards,
-  UseInterceptors,
-  UploadedFile,
-} from '@nestjs/common';
+import { Controller, Get, Body, Patch, Param, Delete } from '@nestjs/common';
 import { UserService } from './user.service';
-import { CreateUserDto } from './dto/create-user.dto';
+
 import { UpdateUserDto } from './dto/update-user.dto';
 
-import { FileInterceptor } from '@nestjs/platform-express';
-
-import { JwtGuard } from '../auth/guards/jwt.guard';
 
 import { MyMulter } from 'src/common/helpers/multer/storgehelper';
-import { GetCurrentUser } from '../auth/decorators/get-user.decorator';
+
 
 export const storage = {
   storage: MyMulter.Storage('./uploads/profileimages'),

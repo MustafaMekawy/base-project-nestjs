@@ -28,7 +28,7 @@ export class UserService {
     return await CrudFactoryHelper.delete(this.prisma.user, id);
   }
 
-  async updateUserPhoto(id, image) {
+  async updateUserPhoto(id: string, image: any) {
     try {
       if (
         image.mimetype != 'image/png' &&
@@ -40,15 +40,15 @@ export class UserService {
           'Only .png, .jpg and .jpeg format allowed!',
         );
       }
-      const user = await this.prisma.user.update({
-        where: {
-          id,
-        },
-        data: {
+      const updatedUser = await CrudFactoryHelper.update(
+        this.prisma.user,
+        { id },
+        {
           image: image.path,
         },
-      });
-      return { image: user.image };
+      );
+      delete updatedUser.refreshToken;
+      return updatedUser;
     } catch (error) {
       throw error;
     }
