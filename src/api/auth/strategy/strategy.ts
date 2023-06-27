@@ -21,10 +21,12 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   }
 
   async validate(req: Request, payload: any) {
+    console.log(payload.id);
     try {
       const currentUser = await this.prisma.user.findUnique({
         where: {
           id: payload.userId,
+          email: payload.email,
         },
       });
 
@@ -33,9 +35,8 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
           'You are not logged in, please login and try again!',
         );
       }
-
       delete currentUser.password;
-
+      delete currentUser.refreshToken;
       return currentUser;
     } catch (err) {
       if (err instanceof PrismaClientKnownRequestError) {

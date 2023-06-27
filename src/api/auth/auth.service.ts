@@ -5,6 +5,7 @@ import {
   HttpStatus,
   BadRequestException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
@@ -47,9 +48,10 @@ export class AuthService {
         signupDto.password,
       );
       //   Create new user
-      const newUser = await CrudFactoryHelper.create(this.prisma.user, {
-        data: { ...signupDto },
-      });
+      const newUser = await CrudFactoryHelper.create(
+        this.prisma.user,
+        signupDto,
+      );
 
       delete newUser.password;
 
@@ -60,27 +62,34 @@ export class AuthService {
   }
 
   //   sign in with an existing user
-  async signin(signinDto: any) {
+  async signIn(signInDto: any) {
     try {
-      // Get user by email
       const user = await CrudFactoryHelper.findUnique(this.prisma.user, {
-        where: { email: signinDto.email },
+        where: { email: signInDto.email },
       });
-
-      //   Check if user exists with provided  email
       if (!user) ErrorHandler.createError('Wrong Email or Password!', 404);
-
-      //   Check if provided email & password are a match
       const isValidPassword = await this.bcryptService.comparePassword(
-        signinDto.password,
+        signInDto.password,
         user.password,
       );
       if (!isValidPassword)
         throw new BadRequestException('Wrong Email or Password!');
+      const { token, refreshToken } =
+        await this.generateAccessTokenAndRefreshToken(user);
+      // const jwtPayload = { id: user.id, email: user.email };
 
-      const token = await this.signToken(user.id, user.email);
-
-      return token;
+      // const token = await this.signToken(jwtPayload);
+      // const refreshToken = await this.signToken(jwtPayload, {
+      //   secret:
+      //     this.config.get('JWT_REFRESH__TOKEN') ?? 'DEFUALT__WORD_@ TO JWY',
+      //   expiresIn: this.config.get('JWT_REFRESH_TOKEN_EXPIRES_IN') ?? '1d',
+      // });
+      const updatedUser = await CrudFactoryHelper.update(
+        this.prisma.user,
+        { id: user.id },
+        { refreshToken: refreshToken },
+      );
+      return { token, refreshToken };
     } catch (err) {
       throw err;
     }
@@ -90,14 +99,15 @@ export class AuthService {
   async forgetPassword(forgetPasswordDto: any) {
     try {
       // Find a user by email
-      const existUser = await this.prisma.user.findUnique({
-        where: {
-          email: forgetPasswordDto.email,
+      const existingUser = await CrudFactoryHelper.findUnique(
+        this.prisma.user,
+        {
+          where: { email: forgetPasswordDto.email },
         },
-      });
+      );
 
       // Check if user exists
-      if (!existUser) throw new NotFoundException('Wrong Email!');
+      if (!existingUser) throw new NotFoundException('Wrong Email!');
 
       // Create reset code, encrypt it, then store it in db
       const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -109,16 +119,14 @@ export class AuthService {
       const date = Date.now() + 10 * 60 * 1000;
 
       // save encrypted code in db
-      const user = await this.prisma.user.update({
-        where: {
-          email: forgetPasswordDto.email,
-        },
-
-        data: {
+      const user = await CrudFactoryHelper.update(
+        this.prisma.user,
+        { email: existingUser.email },
+        {
           resetPasswordToken: token,
           resetExpiresTime: new Date(date),
         },
-      });
+      );
 
       // Sending mail with reset code
       const testMsg = `this is reset code ${resetCode}`;
@@ -128,7 +136,7 @@ export class AuthService {
         text: testMsg,
       });
 
-      return { message: `check code in your email: ${user.email}` };
+      return user.email;
     } catch (err) {
       if (err instanceof PrismaClientKnownRequestError) {
         throw new BadRequestException('Internal Error!');
@@ -174,7 +182,7 @@ export class AuthService {
         throw new BadRequestException('password not match');
 
       const hashedPassword = await bcrypt.hash(resetPassword.newPassword, 10);
-      await this.prisma.user.updateMany({
+      const updatedUser = await this.prisma.user.updateMany({
         where: {
           resetPasswordToken: resetPasswordToken,
         },
@@ -185,7 +193,7 @@ export class AuthService {
         },
       });
 
-      return { message: 'Password reseted successfully.' };
+      return updatedUser;
     } catch (err) {
       if (err instanceof PrismaClientKnownRequestError) {
         throw new BadRequestException('Internal Error!');
@@ -194,18 +202,52 @@ export class AuthService {
     }
   }
 
-  // create jwt
-  async signToken(userId: string, email: string) {
-    const payload = {
-      userId,
-      email,
-    };
+  async logout(userId: string) {
+    const updateUser = await CrudFactoryHelper.update(
+      this.prisma.user,
+      {
+        id: userId,
+        refreshToken: {
+          not: null,
+        },
+      },
+      {
+        refreshToken: null,
+      },
+    );
+    return updateUser ? true : false;
+  }
+  async refreshToken(userRefreshToken: string) {
+    const isValid = this.jwt.verifyAsync(userRefreshToken, {
+      secret: this.config.get('JWT_REFRESH__TOKEN') ?? 'DEFUALT__WORD_@ TO JWY',
+    });
+    if (!isValid) throw new UnauthorizedException();
+    const user = await CrudFactoryHelper.findOne(this.prisma.user, {
+      refreshToken: userRefreshToken,
+    });
+    if (!user)
+      throw new NotFoundException('Invalid refreshToken', {
+        description: 'Invalid refreshToken',
+      });
+    const { token, refreshToken } =
+      await this.generateAccessTokenAndRefreshToken(user);
+    await CrudFactoryHelper.update(
+      this.prisma.user,
+      { id: user.id },
+      { refreshToken: refreshToken },
+    );
+    return { token, refreshToken };
+  }
 
-    const jwt = await this.jwt.signAsync(payload, {
+  // create jwt
+  async signToken(
+    payload,
+    options = {
       secret: this.config.get('JWT_SECRET'),
       expiresIn: this.config.get('JWT_EXPIRES_IN'),
-    });
-
+    },
+  ) {
+    const jwt = await this.jwt.signAsync(payload, options);
     return jwt;
   }
 
@@ -236,5 +278,17 @@ export class AuthService {
       }
       throw err;
     }
+  }
+  async generateAccessTokenAndRefreshToken(user: {
+    id: string;
+    email: string;
+  }) {
+    const jwtPayload = { id: user.id, email: user.email };
+    const token = await this.signToken(jwtPayload);
+    const refreshToken = await this.signToken(jwtPayload, {
+      secret: this.config.get('JWT_REFRESH__TOKEN') ?? 'DEFUALT__WORD_@ TO JWY',
+      expiresIn: this.config.get('JWT_REFRESH_TOKEN_EXPIRES_IN') ?? '1d',
+    });
+    return { token, refreshToken };
   }
 }

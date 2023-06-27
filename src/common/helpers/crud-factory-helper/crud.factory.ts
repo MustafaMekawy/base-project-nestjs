@@ -27,7 +27,6 @@ export class CrudFactoryHelper {
   static async findAll(model: any, options = {}) {
     try {
       const modelResult = await model.findMany({ ...options });
-      if (!modelResult) throw new Error(`no data found`);
 
       return modelResult;
     } catch (err) {
@@ -37,30 +36,26 @@ export class CrudFactoryHelper {
     }
   }
 
-  static async findOne(model: any, id: any, options = {}) {
+  static async findOne(model: any, condition: any = {}, options = {}) {
     try {
-      const modelResult = await model.findOne({
-        where: { id },
+      const modelResult = await model.findFirst({
+        where: { ...condition },
         ...options,
       });
-
-      if (!modelResult)
-        throw new HttpException(`Wrong ${model.name} ID: ${id}`, 404);
 
       return modelResult;
     } catch (err) {
       throw err;
     }
   }
-  static async findUnique(model: any, id: any, options = {}) {
+  static async findUnique(model: any, condition: any, options = {}) {
     try {
       const modelResult = await model.findUnique({
-        where: { id },
+        ...condition,
         ...options,
       });
 
-      if (!modelResult)
-        throw new HttpException(`Wrong ${model.name} ID: ${id}`, 404);
+      if (!modelResult) throw new NotFoundException();
 
       return modelResult;
     } catch (err) {
@@ -68,17 +63,14 @@ export class CrudFactoryHelper {
     }
   }
 
-  static async update(model: any, id: any, updateModelDto: any) {
+  static async update(model: any, condition: any, updateModelDto: any) {
     try {
       const modelResult = await model.update({
-        where: { id },
+        where: { ...condition },
         data: {
           ...updateModelDto,
         },
       });
-
-      if (!modelResult)
-        throw new NotFoundException(`Wrong ${model.name} ID: ${id}`);
 
       return modelResult;
     } catch (err) {
@@ -88,10 +80,10 @@ export class CrudFactoryHelper {
     }
   }
 
-  static async delete(model: any, id: string) {
+  static async delete(model: any, condition = {}) {
     try {
       return await model.delete({
-        where: { id },
+        where: { ...condition },
       });
     } catch (err) {
       if (err instanceof PrismaClientKnownRequestError)

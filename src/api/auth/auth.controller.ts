@@ -6,11 +6,14 @@ import { Roles } from './decorators/roles.decorator';
 import { ConfirmCodeDto } from './dtos/confirmcode.dto';
 import { ForgetPasswordDto } from './dtos/forgetpassword.dto';
 import { ResetPasswordDto } from './dtos/resetpassword.dto';
-import { SigninDto } from './dtos/signin.dto';
+
 import { SignupDto } from './dtos/signup.dto';
 import { JwtGuard } from './guards/jwt.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { createResponse } from 'src/common/helpers/response/create-response.helper';
+import { signInDto } from './dtos/signIn.dto';
+import { GetCurrentUser } from './decorators/get-user.decorator';
+import { RefreshTokenDto } from './dtos/refresh-token.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -25,15 +28,16 @@ export class AuthController {
 
   //   Sign in route
   @Post('signin')
-  async signin(@Body() signinDto: SigninDto) {
-    const token = await this.authService.signin(signinDto);
-    return createResponse('Logged In Successfully.', { token });
+  async signIn(@Body() signInDto: signInDto) {
+    const tokens = await this.authService.signIn(signInDto);
+    return createResponse('Logged In Successfully.', { ...tokens });
   }
 
   //   Forget password route (with email)
   @Post('forget-password')
-  forgetPassword(@Body() forgetPassword: ForgetPasswordDto) {
-    return this.authService.forgetPassword(forgetPassword);
+  async forgetPassword(@Body() forgetPassword: ForgetPasswordDto) {
+    const user = await this.authService.forgetPassword(forgetPassword);
+    return createResponse(`check code in your email: ${user.email}`);
   }
 
   // Confirm code
@@ -45,11 +49,15 @@ export class AuthController {
   // resetPasswordToken dynamic param  to get reset password token to get user
   // auth/resetpassword/abcde
   @Post('resetpassword/:resetPasswordToken')
-  resetPassword(
+  async resetPassword(
     @Body() resetPassword: ResetPasswordDto,
     @Param('resetPasswordToken') resetPasswordToken: string,
   ) {
-    return this.authService.resetPassword(resetPasswordToken, resetPassword);
+    const updatedUser = await this.authService.resetPassword(
+      resetPasswordToken,
+      resetPassword,
+    );
+    return createResponse('password updated successfully ', {});
   }
 
   // Assign new admin
@@ -60,10 +68,21 @@ export class AuthController {
     return this.authService.assignAdmin(id);
   }
 
+  @Post('refresh-token')
+  async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
+    const tokens = await this.authService.refreshToken(
+      refreshTokenDto.refreshToken,
+    );
+    return createResponse('new token and refresh token created', tokens);
+  }
   // Logout
   @UseGuards(JwtGuard)
   @Get('logout')
-  logout() {
-    return { message: 'Logged out successfully.' };
+  async logout(@GetCurrentUser('id') userId: string) {
+    const isLogout = await this.authService.logout(userId);
+    return createResponse(
+      `Logged out  ${isLogout ? 'successfully' : 'failed'}`,
+      null,
+    );
   }
 }
