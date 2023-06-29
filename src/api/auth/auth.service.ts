@@ -292,11 +292,15 @@ export class AuthService {
     email: string;
   }) {
     const jwtPayload = { id: user.id, email: user.email };
-    const token = await this.signToken(jwtPayload);
-    const refreshToken = await this.signToken(jwtPayload, {
-      secret: this.config.get('JWT_REFRESH__TOKEN') ?? 'DEFUALT__WORD_@ TO JWY',
-      expiresIn: this.config.get('JWT_REFRESH_TOKEN_EXPIRES_IN') ?? '1d',
-    });
-    return { token, refreshToken };
+   const tokens = await Promise.all([
+     this.signToken(jwtPayload),
+     this.signToken(jwtPayload, {
+       secret:
+         this.config.get('JWT_REFRESH__TOKEN') ?? 'DEFUALT__WORD_@ TO JWY',
+       expiresIn: this.config.get('JWT_REFRESH_TOKEN_EXPIRES_IN') ?? '1d',
+     }),
+   ]);
+
+   return { token: tokens[0], refreshToken: tokens[1] };
   }
 }
