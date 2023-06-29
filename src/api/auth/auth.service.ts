@@ -21,7 +21,8 @@ import { EmailService } from 'src/common/modules/email/email.service';
 import { ErrorHandler } from 'src/common/helpers/error/errorHandler';
 import CrudFactoryHelper from 'src/common/helpers/crud-factory-helper/crud.factory';
 import { UserService } from '../user/user.service';
-
+import { v4 as uuidv4 } from 'uuid';
+import { CreateUserDto } from '../user/dto/create-user.dto';
 @Injectable()
 export class AuthService {
   constructor(
@@ -83,6 +84,29 @@ export class AuthService {
     } catch (err) {
       throw err;
     }
+  }
+  async googleLogin(req: any) {
+    if (!req.user) {
+      return 'No user from google';
+    }
+    console.log(req.user);
+    const googleUser = req.user;
+    const existsUser = await this.userService.findOneBy({
+      email: googleUser.email,
+    });
+    if (existsUser) {
+      const tokens = await this.generateAccessTokenAndRefreshToken(googleUser);
+      return tokens;
+    }
+    const newUser = {
+      name: googleUser.firstName + '' + googleUser.lastName,
+      image: googleUser.image,
+      email: googleUser.email,
+      password: uuidv4(),
+    };
+    const createdUser = await this.userService.create(newUser);
+    delete createdUser.password;
+    return createdUser;
   }
 
   // Forget password logic

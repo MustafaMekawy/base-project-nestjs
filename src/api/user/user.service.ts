@@ -8,7 +8,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 @Injectable()
 export class UserService {
   constructor(private prisma: PrismaService) {}
-  async create(user: CreateUserDto) {
+  async create(user: Partial<CreateUserDto>) {
     return await CrudFactoryHelper.create(this.prisma.user, user);
   }
   async findAll() {

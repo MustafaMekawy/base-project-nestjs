@@ -6,12 +6,12 @@ export class CreateUserDto extends BaseAuthDto {
   @IsString()
   name: string;
 
-  @IsString()
-  passwordConfirm: string;
-
+  @IsOptional()
   @IsPhoneNumber('EG')
   phone: string;
-
+  @IsOptional()
+  @IsString()
+  image: string;
   @IsOptional()
   @IsEnum(RolesEnum)
   role: string;

@@ -13,9 +13,7 @@ export class SignupDto extends BaseAuthDto {
   @IsString()
   name: string;
 
-  @IsString()
-  passwordConfirm: string;
-
+  @IsOptional()
   @IsPhoneNumber('EG')
   phone: string;
 
