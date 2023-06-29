@@ -8,20 +8,25 @@ import { PrismaService } from 'src/prisma/prisma.service';
 @Injectable()
 export class UserService {
   constructor(private prisma: PrismaService) {}
-
+  async create(user: CreateUserDto) {
+    return await CrudFactoryHelper.create(this.prisma.user, user);
+  }
   async findAll() {
     return await CrudFactoryHelper.findAll(this.prisma.user);
   }
-
+  async findOneBy(condition: any) {
+    return await CrudFactoryHelper.findOne(this.prisma.user, condition);
+  }
   async findOne(id: string) {
     return await CrudFactoryHelper.findOne(this.prisma.user, id);
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto) {
-    return await CrudFactoryHelper.update(this.prisma.user, id, updateUserDto);
-  }
-  async findOneByEmail(email: string) {
-    return await this.prisma.user.findUnique({ where: { email } });
+  async update(condition: any, updateUserDto: any) {
+    return await CrudFactoryHelper.update(
+      this.prisma.user,
+      condition,
+      updateUserDto,
+    );
   }
 
   async remove(id: string) {

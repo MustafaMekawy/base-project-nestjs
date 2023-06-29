@@ -20,11 +20,13 @@ import { ResetPasswordDto } from './dtos/resetpassword.dto';
 import { EmailService } from 'src/common/modules/email/email.service';
 import { ErrorHandler } from 'src/common/helpers/error/errorHandler';
 import CrudFactoryHelper from 'src/common/helpers/crud-factory-helper/crud.factory';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly userService: UserService,
     private readonly bcryptService: BcryptService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
@@ -48,10 +50,7 @@ export class AuthService {
         signupDto.password,
       );
       //   Create new user
-      const newUser = await CrudFactoryHelper.create(
-        this.prisma.user,
-        signupDto,
-      );
+      const newUser = await this.userService.create(signupDto);
 
       delete newUser.password;
 
@@ -64,9 +63,8 @@ export class AuthService {
   //   sign in with an existing user
   async signIn(signInDto: any) {
     try {
-      const user = await CrudFactoryHelper.findUnique(this.prisma.user, {
-        where: { email: signInDto.email },
-      });
+      const user = await this.userService.findOneBy({ email: signInDto.email });
+
       if (!user) ErrorHandler.createError('Wrong Email or Password!', 404);
       const isValidPassword = await this.bcryptService.comparePassword(
         signInDto.password,
@@ -76,19 +74,11 @@ export class AuthService {
         throw new BadRequestException('Wrong Email or Password!');
       const { token, refreshToken } =
         await this.generateAccessTokenAndRefreshToken(user);
-      // const jwtPayload = { id: user.id, email: user.email };
-
-      // const token = await this.signToken(jwtPayload);
-      // const refreshToken = await this.signToken(jwtPayload, {
-      //   secret:
-      //     this.config.get('JWT_REFRESH__TOKEN') ?? 'DEFUALT__WORD_@ TO JWY',
-      //   expiresIn: this.config.get('JWT_REFRESH_TOKEN_EXPIRES_IN') ?? '1d',
-      // });
-      const updatedUser = await CrudFactoryHelper.update(
-        this.prisma.user,
+      const updateUser = await this.userService.update(
         { id: user.id },
         { refreshToken: refreshToken },
       );
+
       return { token, refreshToken };
     } catch (err) {
       throw err;
@@ -99,12 +89,9 @@ export class AuthService {
   async forgetPassword(forgetPasswordDto: any) {
     try {
       // Find a user by email
-      const existingUser = await CrudFactoryHelper.findUnique(
-        this.prisma.user,
-        {
-          where: { email: forgetPasswordDto.email },
-        },
-      );
+      const existingUser = await this.userService.findOneBy({
+        email: forgetPasswordDto.email,
+      });
 
       // Check if user exists
       if (!existingUser) throw new NotFoundException('Wrong Email!');
@@ -119,24 +106,22 @@ export class AuthService {
       const date = Date.now() + 10 * 60 * 1000;
 
       // save encrypted code in db
-      const user = await CrudFactoryHelper.update(
-        this.prisma.user,
+      const updatedUser = await this.userService.update(
         { email: existingUser.email },
         {
           resetPasswordToken: token,
           resetExpiresTime: new Date(date),
         },
       );
-
       // Sending mail with reset code
       const testMsg = `this is reset code ${resetCode}`;
       await this.emailService.sendEmail({
-        to: user.email,
+        to: updatedUser.email,
         subject: 'your Password Reset Code',
         text: testMsg,
       });
 
-      return user.email;
+      return updatedUser.email;
     } catch (err) {
       if (err instanceof PrismaClientKnownRequestError) {
         throw new BadRequestException('Internal Error!');
@@ -155,16 +140,14 @@ export class AuthService {
       );
 
       // Get user with the reset code
-      const user = await this.prisma.user.findFirst({
-        where: {
-          resetPasswordToken: hashedToken,
-        },
+      const user = await this.userService.findOneBy({
+        resetPasswordToken: hashedToken,
       });
 
       if (!user) throw new NotFoundException(' wrong code');
       const date = Date.now();
       if (user.resetExpiresTime < new Date(date))
-        throw new BadRequestException(' the code has expierd try agin');
+        throw new BadRequestException(' the code has expired try agin');
       //return reset password token
       return user.resetPasswordToken;
     } catch (err) {
@@ -182,16 +165,16 @@ export class AuthService {
         throw new BadRequestException('password not match');
 
       const hashedPassword = await bcrypt.hash(resetPassword.newPassword, 10);
-      const updatedUser = await this.prisma.user.updateMany({
-        where: {
+      const updatedUser = await this.userService.update(
+        {
           resetPasswordToken: resetPasswordToken,
         },
-        data: {
+        {
           password: hashedPassword,
           resetPasswordToken: null,
           resetExpiresTime: null,
         },
-      });
+      );
 
       return updatedUser;
     } catch (err) {
@@ -203,8 +186,7 @@ export class AuthService {
   }
 
   async logout(userId: string) {
-    const updateUser = await CrudFactoryHelper.update(
-      this.prisma.user,
+    const updatedUser = await this.userService.update(
       {
         id: userId,
         refreshToken: {
@@ -215,16 +197,18 @@ export class AuthService {
         refreshToken: null,
       },
     );
-    return updateUser ? true : false;
+
+    return updatedUser ? true : false;
   }
   async refreshToken(userRefreshToken: string) {
     const isValid = this.jwt.verifyAsync(userRefreshToken, {
       secret: this.config.get('JWT_REFRESH__TOKEN') ?? 'DEFUALT__WORD_@ TO JWY',
     });
     if (!isValid) throw new UnauthorizedException();
-    const user = await CrudFactoryHelper.findOne(this.prisma.user, {
+    const user = await this.userService.findOneBy({
       refreshToken: userRefreshToken,
     });
+
     if (!user)
       throw new NotFoundException('Invalid refreshToken', {
         description: 'Invalid refreshToken',

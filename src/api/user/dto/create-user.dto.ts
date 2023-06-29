@@ -1,29 +1,18 @@
-import {
-  IsEmail,
-  IsNotEmpty,
-  IsOptional,
-  IsPhoneNumber,
-  IsString,
-  MinLength,
-} from 'class-validator';
+import { IsEnum, IsOptional, IsPhoneNumber, IsString } from 'class-validator';
+import { BaseAuthDto } from 'src/api/auth/dtos/auth-base.dto';
+import { RolesEnum } from 'src/common/enum/roles.enum';
 
-export class CreateUserDto {
+export class CreateUserDto extends BaseAuthDto {
   @IsString()
-  @IsNotEmpty()
-  @MinLength(3)
   name: string;
+
   @IsString()
-  @IsNotEmpty()
-  @IsEmail()
-  email: string;
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(3)
-  password: string;
+  passwordConfirm: string;
+
   @IsPhoneNumber('EG')
   phone: string;
+
   @IsOptional()
-  resetExpiresTime: any;
-  @IsOptional()
-  resetPasswordToken: any;
+  @IsEnum(RolesEnum)
+  role: string;
 }
