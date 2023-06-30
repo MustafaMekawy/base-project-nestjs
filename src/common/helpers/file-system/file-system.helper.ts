@@ -1,6 +1,6 @@
-import path from 'path';
-import fs from 'fs';
-import util from 'util';
+import * as path from 'path';
+import * as fs from 'fs';
+import * as util from 'util';
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
 const unlinkFile = util.promisify(fs.unlink);
