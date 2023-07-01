@@ -11,19 +11,20 @@ interface ColumnsInterface {
 @Injectable()
 export class ExcelService {
   async generateExcel(
+    sheetName:string
     columnsHeaders: Partial<ExcelJS.Column>[],
     data: [],
   ): Promise<ExcelJS.Workbook> {
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Sheet 1');
+    const worksheet = workbook.addWorksheet(sheetName);
     worksheet.columns = columnsHeaders;
     data.forEach((item) => worksheet.addRow(item));
     return workbook;
   }
-  async readExcel(filePath: string) {
+  async readExcel(filePath: string,sheetName:string) {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.readFile(filePath);
-    const worksheet = workbook.getWorksheet('Sheet 1');
+    const worksheet = workbook.getWorksheet(sheetName);
     const firstRow = worksheet.getRow(1);
     const values = [];
     firstRow.eachCell((cell, colNumber) => {
@@ -44,4 +45,17 @@ export class ExcelService {
 
     return rows;
   }
+  async appendRowToExcelSheet(filePath: string,sheetName:string ,data: any[]) {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(filePath);
+  const worksheet = workbook.getWorksheet(sheetName); // Replace 'Sheet1' with the name of your sheet
+  
+  // Find the last row of the worksheet and insert a new row below it
+  const lastRow = worksheet.lastRow;
+  const newRow = worksheet.addRow(data);
+  newRow.hidden = lastRow.hidden; // Copy the hidden state of the last row
+
+  // Save the changes to the workbook
+  await workbook.xlsx.writeFile(filePath);
+    }
 }
