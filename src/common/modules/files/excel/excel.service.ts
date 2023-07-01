@@ -58,4 +58,15 @@ export class ExcelService {
   // Save the changes to the workbook
   await workbook.xlsx.writeFile(filePath);
     }
+  async  removeRowFromExcelSheet(filePath: string, sheetName:string,rowIndex: number) {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(filePath);
+  const worksheet = workbook.getWorksheet(sheetName); // Replace 'Sheet1' with the name of your sheet
+
+  // Remove the row at the specified index
+  worksheet.spliceRows(rowIndex, 1);
+
+  // Save the changes to the workbook
+  await workbook.xlsx.writeFile(filePath);
+}
 }
