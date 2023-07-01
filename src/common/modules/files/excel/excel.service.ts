@@ -69,4 +69,16 @@ export class ExcelService {
   // Save the changes to the workbook
   await workbook.xlsx.writeFile(filePath);
 }
+async  updateRowInExcelSheet(filePath: string, rowIndex: number, newData: any[]) {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(filePath);
+  const worksheet = workbook.getWorksheet('Sheet1'); // Replace 'Sheet1' with the name of your sheet
+
+  // Get the row to be updated and update its cell values
+  const row = worksheet.getRow(rowIndex + 1); // Add 1 to the index to account for 1-based row numbering
+  row.values = newData;
+
+  // Save the changes to the workbook
+  await workbook.xlsx.writeFile(filePath);
+}
 }
