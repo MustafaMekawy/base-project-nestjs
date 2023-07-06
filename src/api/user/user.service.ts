@@ -1,6 +1,5 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
 
 import CrudFactoryHelper from 'src/common/helpers/crud-factory-helper/crud.factory';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -35,16 +34,6 @@ export class UserService {
 
   async updateUserPhoto(id: string, image: any) {
     try {
-      if (
-        image.mimetype != 'image/png' &&
-        image.mimetype &&
-        'image/jpg' &&
-        image.mimetype != 'image/jpeg'
-      ) {
-        throw new BadRequestException(
-          'Only .png, .jpg and .jpeg format allowed!',
-        );
-      }
       const updatedUser = await CrudFactoryHelper.update(
         this.prisma.user,
         { id },
@@ -52,6 +41,7 @@ export class UserService {
           image: image.path,
         },
       );
+      delete updatedUser.password;
       delete updatedUser.refreshToken;
       return updatedUser;
     } catch (error) {

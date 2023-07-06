@@ -1,23 +1,14 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-  Req,
-  Request,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Request } from '@nestjs/common';
 import { UseGuards } from '@nestjs/common/decorators/core/use-guards.decorator';
 
 import { AuthService } from './auth.service';
-import { Roles } from './decorators/roles.decorator';
+
 import { ConfirmCodeDto } from './dtos/confirmcode.dto';
 import { ForgetPasswordDto } from './dtos/forgetpassword.dto';
 import { ResetPasswordDto } from './dtos/resetpassword.dto';
 
 import { SignupDto } from './dtos/signup.dto';
 import { JwtGuard } from './guards/jwt.guard';
-import { RolesGuard } from './guards/roles.guard';
 import { createResponse } from 'src/common/helpers/response/create-response.helper';
 import { signInDto } from './dtos/signIn.dto';
 import { GetCurrentUser } from './decorators/get-user.decorator';
@@ -78,14 +69,6 @@ export class AuthController {
     );
     return createResponse('password updated successfully ', {});
   }
-
-  // // Assign new admin
-  // @UseGuards(JwtGuard, RolesGuard)
-  // @Roles('admin')
-  // @Get('assignadmin/:id')
-  // assignAdmin(@Param('id') id: string) {
-  //   return this.authService.assignAdmin(id);
-  // }
 
   @Post('refresh-token')
   async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {

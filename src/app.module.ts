@@ -12,6 +12,8 @@ import { EmailModule } from './common/modules/email/email.module';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ResponseInterceptor } from './common/interceptor/response/response-interceptor/response-interceptor.interceptor';
 
+
+
 @Module({
   imports: [
     ConfigModule.forRoot({
