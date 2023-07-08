@@ -26,9 +26,6 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
 
   async validate(req: Request, payload: any) {
     try {
-      if (Date.now() < payload.exp) {
-        throw new UnauthorizedException('Token has expired');
-      }
       const currentUser = await this.userService.findOneBy({
         id: payload.userId,
         email: payload.email,

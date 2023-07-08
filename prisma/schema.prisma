@@ -14,6 +14,7 @@ model User {
   id                 String    @id @default(uuid())
   name               String
   email              String    @unique
+  nationalId         String?    
   password           String
   phone              String?   
   role               String    @default("user")

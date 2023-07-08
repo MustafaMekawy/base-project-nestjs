@@ -1,11 +1,12 @@
 import {
-  IsEmail,
   IsEnum,
   IsOptional,
   IsPhoneNumber,
   IsString,
-  MinLength,
+  IsNumberString,
+  Length,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { RolesEnum } from 'src/common/enum/roles.enum';
 import { BaseAuthDto } from './auth-base.dto';
 
@@ -20,4 +21,9 @@ export class SignupDto extends BaseAuthDto {
   @IsOptional()
   @IsEnum(RolesEnum)
   role: string;
+  @IsOptional()
+  @Transform(({ value }) => value.trim())
+  @IsNumberString()
+  @Length(14)
+  nationalId: string;
 }
